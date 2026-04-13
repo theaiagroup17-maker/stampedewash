@@ -10,6 +10,7 @@ export async function POST(_req: NextRequest) {
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
+    // web_search is a server-side connector tool — single API call
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 16000,
@@ -17,25 +18,30 @@ export async function POST(_req: NextRequest) {
         {
           type: 'web_search_20250305' as any,
           name: 'web_search',
-          max_uses: 10,
+          max_uses: 15,
         },
       ],
-      system: `You are a commercial intelligence agent for the car wash industry in Alberta, Canada. Search the web thoroughly to find every automatic, express, or tunnel car wash currently operating in Calgary, Airdrie, Cochrane, and Okotoks, Alberta. Do not include hand-wash only or detail-only operations unless they also operate an automatic/tunnel wash.
+      system: `You are a commercial intelligence agent for the car wash industry in Alberta, Canada. Use the web_search tool to find every automatic, express, or tunnel car wash currently operating in Calgary, Airdrie, Cochrane, and Okotoks, Alberta.
 
-After searching, return ONLY a valid JSON object — no prose, no markdown, no code fences. Just the raw JSON.`,
+Do not include hand-wash only or detail-only operations unless they also operate an automatic/tunnel wash.
+
+After searching, return ONLY a valid JSON object. No prose before or after. No markdown code fences. Just the raw JSON.`,
       messages: [
         {
           role: 'user',
           content: `Find all automatic, express, and tunnel car washes operating in Calgary, Airdrie, Cochrane, and Okotoks, Alberta, Canada.
 
-Use these normalized brand keys:
-gww = Great White Wash, mnt = Mint Smartwash, coop = Calgary Co-op, bub = Bubbles Car Wash, mrb = Mr. Bubbles Carwash, ess = Esso, pca = Petro-Canada, shl = Shell, sup = Supersuds, wav = Wave Express Wash, mrx = Mr. Express Car Wash, glo = Glow Auto Wash, ult = Ultra Car Wash, blu = Bluewave Car Wash, ind = Independent (no major brand), oth = Other.
+Search for each brand specifically: Great White Wash, Mint Smartwash, Calgary Co-op car wash, Bubbles Car Wash, Petro-Canada car wash, Shell car wash, Esso car wash, Supersuds, Wave Express, Mr. Express Car Wash, Glow Auto Wash, Ultra Car Wash, Bluewave Car Wash, and any independents.
 
-Return: { "competitors": [ { "name": "string", "brand": "string (key from above)", "address": "string", "city": "Calgary|Airdrie|Cochrane|Okotoks", "lat": null, "lng": null, "wash_type": "tunnel|automatic|express|full_service|detail" } ] }`,
+Use these normalized brand keys:
+gww = Great White Wash, mnt = Mint Smartwash, coop = Calgary Co-op, bub = Bubbles Car Wash, mrb = Mr. Bubbles Carwash, ess = Esso, pca = Petro-Canada, shl = Shell, sup = Supersuds, wav = Wave Express Wash, mrx = Mr. Express Car Wash, glo = Glow Auto Wash, ult = Ultra Car Wash, blu = Bluewave Car Wash, ind = Independent, oth = Other.
+
+Return: { "competitors": [ { "name": "string", "brand": "brand_key", "address": "full street address", "city": "Calgary|Airdrie|Cochrane|Okotoks", "lat": null, "lng": null, "wash_type": "tunnel|automatic|express|full_service|detail" } ] }`,
         },
       ],
     });
 
+    // Extract text from response
     let responseText = '';
     for (const block of response.content) {
       if (block.type === 'text') {
@@ -51,7 +57,7 @@ Return: { "competitors": [ { "name": "string", "brand": "string (key from above)
     } catch {
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       if (jsonMatch) parsed = JSON.parse(jsonMatch[0]);
-      else throw new Error('Could not parse competitor response. Raw: ' + responseText.substring(0, 500));
+      else throw new Error('Could not parse competitor response. Raw: ' + responseText.substring(0, 300));
     }
 
     const competitorsList = parsed.competitors || [];
