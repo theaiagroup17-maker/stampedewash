@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@14 . --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --no-git --use-npm)",
+      "Bash(npx create-next-app@14 stampede-wash-temp --typescript --tailwind --eslint --app --src-dir --import-alias \"@/*\" --no-git --use-npm)",
+      "Bash(cp -r stampede-wash-temp/* .)",
+      "Bash(cp stampede-wash-temp/.eslintrc.json .)",
+      "Bash(cp stampede-wash-temp/.gitignore .)",
+      "Bash(rm -rf stampede-wash-temp)",
+      "Bash(npm install:*)",
+      "Bash(npx next:*)",
+      "Bash(npx tsc:*)"
+    ]
+  }
+}
