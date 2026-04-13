@@ -23,22 +23,22 @@ const SEED_COMPETITORS: SeedCompetitor[] = [
   // Mint Smartwash
   { name: 'Mint Smartwash - 99th Ave', brand: 'mnt', address: '150 99th Ave SE, Calgary', city: 'Calgary', lat: 50.9680, lng: -114.0656, wash_type: 'express' },
 
-  // Calgary Co-op (need geocoding)
-  { name: 'Calgary Co-op Car Wash - Mission', brand: 'coop', address: '3623 Macleod Trail SW, Calgary', city: 'Calgary', lat: null, lng: null, wash_type: 'automatic' },
-  { name: 'Calgary Co-op Car Wash - Copperfield', brand: 'coop', address: '15566 McIvor Blvd SE #400, Calgary', city: 'Calgary', lat: null, lng: null, wash_type: 'automatic' },
-  { name: 'Calgary Co-op Car Wash - Heritage Towne', brand: 'coop', address: '6 Heritage Gate SE, Calgary', city: 'Calgary', lat: null, lng: null, wash_type: 'automatic' },
-  { name: 'Calgary Co-op Car Wash - Centre St', brand: 'coop', address: '8220 Centre Street NE, Calgary', city: 'Calgary', lat: null, lng: null, wash_type: 'automatic' },
-  { name: 'Calgary Co-op Car Wash - Canyon Meadows', brand: 'coop', address: '1221 Canyon Meadows Dr SE #95, Calgary', city: 'Calgary', lat: null, lng: null, wash_type: 'automatic' },
-  { name: 'Calgary Co-op Car Wash - 50th Ave', brand: 'coop', address: '5250 50th Ave SE, Calgary', city: 'Calgary', lat: null, lng: null, wash_type: 'automatic' },
-  { name: 'Calgary Co-op Car Wash - Symons Valley', brand: 'coop', address: '12000 Symons Valley Rd NW, Calgary', city: 'Calgary', lat: null, lng: null, wash_type: 'automatic' },
-  { name: 'Calgary Co-op Car Wash - Crowfoot', brand: 'coop', address: '35 Crowfoot Way NW, Calgary', city: 'Calgary', lat: null, lng: null, wash_type: 'automatic' },
-  { name: 'Calgary Co-op Car Wash - Shaganappi', brand: 'coop', address: '5505 Shaganappi Tr NW, Calgary', city: 'Calgary', lat: null, lng: null, wash_type: 'automatic' },
-  { name: 'Calgary Co-op Car Wash - Panorama Hills', brand: 'coop', address: '1111 Panatella Blvd NW, Calgary', city: 'Calgary', lat: null, lng: null, wash_type: 'automatic' },
-  { name: 'Calgary Co-op Car Wash - Okotoks', brand: 'coop', address: '31 Southridge Dr #111, Okotoks', city: 'Okotoks', lat: null, lng: null, wash_type: 'automatic' },
+  // Calgary Co-op
+  { name: 'Calgary Co-op Car Wash - Mission', brand: 'coop', address: '3623 Macleod Trail SW, Calgary', city: 'Calgary', lat: 51.0326, lng: -114.0695, wash_type: 'automatic' },
+  { name: 'Calgary Co-op Car Wash - Copperfield', brand: 'coop', address: '15566 McIvor Blvd SE #400, Calgary', city: 'Calgary', lat: 50.8986, lng: -113.9631, wash_type: 'automatic' },
+  { name: 'Calgary Co-op Car Wash - Heritage Towne', brand: 'coop', address: '6 Heritage Gate SE, Calgary', city: 'Calgary', lat: 50.9838, lng: -114.0582, wash_type: 'automatic' },
+  { name: 'Calgary Co-op Car Wash - Centre St', brand: 'coop', address: '8220 Centre Street NE, Calgary', city: 'Calgary', lat: 51.1022, lng: -114.0622, wash_type: 'automatic' },
+  { name: 'Calgary Co-op Car Wash - Canyon Meadows', brand: 'coop', address: '1221 Canyon Meadows Dr SE #95, Calgary', city: 'Calgary', lat: 50.9633, lng: -114.0626, wash_type: 'automatic' },
+  { name: 'Calgary Co-op Car Wash - 50th Ave', brand: 'coop', address: '5250 50th Ave SE, Calgary', city: 'Calgary', lat: 50.9948, lng: -114.0152, wash_type: 'automatic' },
+  { name: 'Calgary Co-op Car Wash - Symons Valley', brand: 'coop', address: '12000 Symons Valley Rd NW, Calgary', city: 'Calgary', lat: 51.1525, lng: -114.1440, wash_type: 'automatic' },
+  { name: 'Calgary Co-op Car Wash - Crowfoot', brand: 'coop', address: '35 Crowfoot Way NW, Calgary', city: 'Calgary', lat: 51.1228, lng: -114.1654, wash_type: 'automatic' },
+  { name: 'Calgary Co-op Car Wash - Shaganappi', brand: 'coop', address: '5505 Shaganappi Tr NW, Calgary', city: 'Calgary', lat: 51.0651, lng: -114.1335, wash_type: 'automatic' },
+  { name: 'Calgary Co-op Car Wash - Panorama Hills', brand: 'coop', address: '1111 Panatella Blvd NW, Calgary', city: 'Calgary', lat: 51.1497, lng: -114.0786, wash_type: 'automatic' },
+  { name: 'Calgary Co-op Car Wash - Okotoks', brand: 'coop', address: '31 Southridge Dr #111, Okotoks', city: 'Okotoks', lat: 50.7267, lng: -113.9797, wash_type: 'automatic' },
 
   // Bubbles Car Wash
-  { name: 'Bubbles Car Wash - Macleod S', brand: 'bub', address: '4715 Macleod Trail SW, Calgary', city: 'Calgary', lat: null, lng: null, wash_type: 'full_service' },
-  { name: 'Bubbles Car Wash - Macleod 59th', brand: 'bub', address: '5912 Macleod Trail SW, Calgary', city: 'Calgary', lat: null, lng: null, wash_type: 'full_service' },
+  { name: 'Bubbles Car Wash - Macleod S', brand: 'bub', address: '4715 Macleod Trail SW, Calgary', city: 'Calgary', lat: 51.0131, lng: -114.0680, wash_type: 'full_service' },
+  { name: 'Bubbles Car Wash - Macleod 59th', brand: 'bub', address: '5912 Macleod Trail SW, Calgary', city: 'Calgary', lat: 50.9987, lng: -114.0666, wash_type: 'full_service' },
 ];
 
 export async function POST(_req: NextRequest) {
@@ -46,21 +46,15 @@ export async function POST(_req: NextRequest) {
     const supabase = createServerClient();
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-    // Check if competitors already exist
-    const { data: existing } = await supabase.from('competitors').select('id').eq('verified', true).limit(1);
-    if (existing && existing.length > 0) {
-      return NextResponse.json({ message: 'Competitors already seeded', count: 0 });
-    }
-
     let count = 0;
     for (const comp of SEED_COMPETITORS) {
       let { lat, lng } = comp;
 
-      // Geocode if missing coordinates
+      // Geocode if still missing coordinates
       if ((lat === null || lng === null) && apiKey) {
         try {
           const geoRes = await fetch(
-            `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(comp.address)}&key=${apiKey}`
+            `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(comp.address + ', Alberta, Canada')}&key=${apiKey}`
           );
           const geoData = await geoRes.json();
           if (geoData.results?.[0]) {
@@ -70,18 +64,44 @@ export async function POST(_req: NextRequest) {
         } catch {}
       }
 
-      const { error } = await supabase.from('competitors').insert({
-        name: comp.name,
-        brand: comp.brand,
-        address: comp.address,
-        city: comp.city,
-        lat,
-        lng,
-        wash_type: comp.wash_type,
-        verified: true,
-      });
+      // Skip if we still have no coordinates
+      if (lat === null || lng === null) continue;
 
-      if (!error) count++;
+      // Check if this competitor already exists (by name)
+      const { data: existing } = await supabase
+        .from('competitors')
+        .select('id')
+        .eq('name', comp.name)
+        .maybeSingle();
+
+      if (existing) {
+        // Update existing
+        await supabase
+          .from('competitors')
+          .update({
+            brand: comp.brand,
+            address: comp.address,
+            city: comp.city,
+            lat,
+            lng,
+            wash_type: comp.wash_type,
+            verified: true,
+          })
+          .eq('id', existing.id);
+      } else {
+        // Insert new
+        await supabase.from('competitors').insert({
+          name: comp.name,
+          brand: comp.brand,
+          address: comp.address,
+          city: comp.city,
+          lat,
+          lng,
+          wash_type: comp.wash_type,
+          verified: true,
+        });
+      }
+      count++;
     }
 
     return NextResponse.json({ count, message: `Seeded ${count} competitor locations` });

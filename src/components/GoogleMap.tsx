@@ -71,7 +71,7 @@ export default function GoogleMap({
         mapTypeControlOptions: {
           style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
           position: google.maps.ControlPosition.TOP_RIGHT,
-          mapTypeIds: ['roadmap', 'satellite'],
+          mapTypeIds: ['roadmap', 'hybrid'],
         },
         fullscreenControl: false,
         streetViewControl: false,

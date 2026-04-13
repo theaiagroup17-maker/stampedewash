@@ -14,27 +14,52 @@ export async function POST(req: NextRequest) {
     }
 
     const supabase = createServerClient();
+    const now = new Date().toISOString();
 
-    // If assigning a rank, clear that rank from any other site for this user
-    if (rank !== null) {
-      // Find existing ranking with this rank for this user
-      const { data: existing } = await supabase
+    // Get this user's current rank for this site (before changing)
+    const { data: currentRanking } = await supabase
+      .from('rankings')
+      .select('rank')
+      .eq('site_id', site_id)
+      .eq('user_name', user_name)
+      .maybeSingle();
+
+    const oldRank = currentRanking?.rank ?? null;
+
+    if (rank !== null && rank !== oldRank) {
+      // Get all of this user's rankings, sorted by rank
+      const { data: allRankings } = await supabase
         .from('rankings')
-        .select('id, site_id')
+        .select('id, site_id, rank')
         .eq('user_name', user_name)
-        .eq('rank', rank)
-        .neq('site_id', site_id);
+        .not('rank', 'is', null)
+        .neq('site_id', site_id)
+        .order('rank', { ascending: true });
 
-      if (existing && existing.length > 0) {
-        // Set those to null
-        await supabase
-          .from('rankings')
-          .update({ rank: null, updated_at: new Date().toISOString() })
-          .in('id', existing.map(r => r.id));
+      if (allRankings && allRankings.length > 0) {
+        // Shift down: any rank >= the new rank gets pushed down by 1
+        // But first remove the old rank from the list (we're moving this site)
+        const toShift = allRankings.filter(r => r.rank! >= rank);
+
+        for (const r of toShift) {
+          const newRankVal = r.rank! + 1;
+          // Cap at 10, anything beyond 10 becomes unranked
+          if (newRankVal > 10) {
+            await supabase
+              .from('rankings')
+              .update({ rank: null, updated_at: now })
+              .eq('id', r.id);
+          } else {
+            await supabase
+              .from('rankings')
+              .update({ rank: newRankVal, updated_at: now })
+              .eq('id', r.id);
+          }
+        }
       }
     }
 
-    // Upsert the ranking
+    // Upsert the ranking for this site
     const { error } = await supabase
       .from('rankings')
       .upsert(
@@ -42,7 +67,7 @@ export async function POST(req: NextRequest) {
           site_id,
           user_name,
           rank,
-          updated_at: new Date().toISOString(),
+          updated_at: now,
         },
         { onConflict: 'site_id,user_name' }
       );
@@ -54,7 +79,8 @@ export async function POST(req: NextRequest) {
       .from('rankings')
       .select('*')
       .eq('user_name', user_name)
-      .order('rank', { ascending: true });
+      .not('rank', 'is', null)
+      .order('rank', { ascending: true, nullsFirst: false });
 
     return NextResponse.json({ rankings: userRankings });
   } catch (err: any) {

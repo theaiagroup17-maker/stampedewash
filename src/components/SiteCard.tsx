@@ -16,10 +16,10 @@ export default function SiteCard({ site, rankings, isDuplicate }: SiteCardProps)
   const router = useRouter();
 
   const researchIcon = {
-    pending: <span className="text-gray-400" title="Pending">🕐</span>,
-    running: <span className="animate-spin inline-block" title="Running">⏳</span>,
-    complete: <span className="text-green-600" title="Complete">✓</span>,
-    failed: <span className="text-red-500" title="Failed">✗</span>,
+    pending: <span className="text-gray-400 text-xs" title="Research pending">🕐</span>,
+    running: <span className="animate-spin inline-block text-xs" title="Researching...">⏳</span>,
+    complete: <span className="text-green-600 text-xs" title="Research complete">✓</span>,
+    failed: <span className="text-red-500 text-xs" title="Research failed">✗</span>,
   }[site.research_status];
 
   return (

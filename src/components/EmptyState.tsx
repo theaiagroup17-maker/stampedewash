@@ -13,7 +13,7 @@ export default function EmptyState() {
       const res = await fetch('/api/seed', { method: 'POST' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to seed sites');
-      toast.success(`Seeded ${data.count} sites. Research agents running in background.`);
+      toast.success(`Seeded ${data.count} sites`);
     } catch (err: any) {
       toast.error(err.message);
     } finally {

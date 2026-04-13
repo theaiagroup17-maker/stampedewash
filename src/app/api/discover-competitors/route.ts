@@ -12,13 +12,26 @@ export async function POST(_req: NextRequest) {
 
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 4000,
-      tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 15 }],
-      system: 'You are a commercial intelligence agent for the car wash industry in Alberta, Canada. Search the web thoroughly to find every automatic, express, or tunnel car wash currently operating in Calgary, Airdrie, Cochrane, and Okotoks, Alberta. Do not include hand-wash only or detail-only operations unless they also operate an automatic/tunnel wash. Return structured JSON only — no prose, no markdown, no code fences.',
+      max_tokens: 16000,
+      tools: [
+        {
+          type: 'web_search_20250305' as any,
+          name: 'web_search',
+          max_uses: 10,
+        },
+      ],
+      system: `You are a commercial intelligence agent for the car wash industry in Alberta, Canada. Search the web thoroughly to find every automatic, express, or tunnel car wash currently operating in Calgary, Airdrie, Cochrane, and Okotoks, Alberta. Do not include hand-wash only or detail-only operations unless they also operate an automatic/tunnel wash.
+
+After searching, return ONLY a valid JSON object — no prose, no markdown, no code fences. Just the raw JSON.`,
       messages: [
         {
           role: 'user',
-          content: `Find all automatic, express, and tunnel car washes operating in Calgary, Airdrie, Cochrane, and Okotoks, Alberta, Canada. Use these normalized brand keys: gww = Great White Wash, mnt = Mint Smartwash, coop = Calgary Co-op, bub = Bubbles Car Wash, mrb = Mr. Bubbles Carwash, ess = Esso, pca = Petro-Canada, shl = Shell, sup = Supersuds, wav = Wave Express Wash, mrx = Mr. Express Car Wash, glo = Glow Auto Wash, ult = Ultra Car Wash, blu = Bluewave Car Wash, ind = Independent (no major brand), oth = Other. Return: { "competitors": [ { "name": "string", "brand": "string", "address": "string", "city": "string", "lat": null, "lng": null, "wash_type": "tunnel|automatic|express|full_service|detail" } ] }`,
+          content: `Find all automatic, express, and tunnel car washes operating in Calgary, Airdrie, Cochrane, and Okotoks, Alberta, Canada.
+
+Use these normalized brand keys:
+gww = Great White Wash, mnt = Mint Smartwash, coop = Calgary Co-op, bub = Bubbles Car Wash, mrb = Mr. Bubbles Carwash, ess = Esso, pca = Petro-Canada, shl = Shell, sup = Supersuds, wav = Wave Express Wash, mrx = Mr. Express Car Wash, glo = Glow Auto Wash, ult = Ultra Car Wash, blu = Bluewave Car Wash, ind = Independent (no major brand), oth = Other.
+
+Return: { "competitors": [ { "name": "string", "brand": "string (key from above)", "address": "string", "city": "Calgary|Airdrie|Cochrane|Okotoks", "lat": null, "lng": null, "wash_type": "tunnel|automatic|express|full_service|detail" } ] }`,
         },
       ],
     });
@@ -38,7 +51,7 @@ export async function POST(_req: NextRequest) {
     } catch {
       const jsonMatch = responseText.match(/\{[\s\S]*\}/);
       if (jsonMatch) parsed = JSON.parse(jsonMatch[0]);
-      else throw new Error('Could not parse competitor response');
+      else throw new Error('Could not parse competitor response. Raw: ' + responseText.substring(0, 500));
     }
 
     const competitorsList = parsed.competitors || [];
@@ -59,12 +72,18 @@ export async function POST(_req: NextRequest) {
         } catch {}
       }
 
-      // Upsert by name + address
+      // Skip if still no coordinates
+      if (!comp.lat || !comp.lng) continue;
+
+      // Normalize city value to match DB constraint
+      const validCities = ['Calgary', 'Airdrie', 'Cochrane', 'Okotoks', "Tsuut'ina"];
+      const city = validCities.includes(comp.city) ? comp.city : 'Calgary';
+
+      // Upsert by name
       const { data: existing } = await supabase
         .from('competitors')
         .select('id')
         .eq('name', comp.name)
-        .eq('address', comp.address || '')
         .maybeSingle();
 
       if (existing) {
@@ -72,9 +91,10 @@ export async function POST(_req: NextRequest) {
           .from('competitors')
           .update({
             brand: comp.brand || 'oth',
+            address: comp.address,
             lat: comp.lat,
             lng: comp.lng,
-            city: comp.city,
+            city,
             wash_type: comp.wash_type,
           })
           .eq('id', existing.id);
@@ -85,7 +105,7 @@ export async function POST(_req: NextRequest) {
           address: comp.address,
           lat: comp.lat,
           lng: comp.lng,
-          city: comp.city,
+          city,
           wash_type: comp.wash_type,
           verified: false,
         });

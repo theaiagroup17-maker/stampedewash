@@ -38,7 +38,7 @@ export default function AddSitePanel({ clickToAddMode, onToggleClickMode }: AddS
       <div className="flex gap-2 mb-2">
         <input
           type="text"
-          placeholder="Paste Google Maps link..."
+          placeholder="Paste Google Maps link or address..."
           value={link}
           onChange={(e) => setLink(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSubmitLink()}

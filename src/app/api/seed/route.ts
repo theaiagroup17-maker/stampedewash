@@ -4,7 +4,7 @@ import { SEED_SITES } from '@/lib/constants';
 
 export const maxDuration = 60;
 
-export async function POST(req: NextRequest) {
+export async function POST(_req: NextRequest) {
   try {
     const supabase = createServerClient();
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -53,15 +53,7 @@ export async function POST(req: NextRequest) {
 
     if (error) throw error;
 
-    // Fire and forget: trigger research for each site
-    const baseUrl = req.nextUrl.origin;
-    if (inserted) {
-      for (const site of inserted) {
-        fetch(`${baseUrl}/api/research/${site.id}`, { method: 'POST' }).catch(() => {});
-      }
-    }
-
-    return NextResponse.json({ count: inserted?.length || 0, message: 'Sites seeded. Research agents running in background.' });
+    return NextResponse.json({ count: inserted?.length || 0, message: 'Sites seeded successfully.' });
   } catch (err: any) {
     console.error('Seed error:', err);
     return NextResponse.json({ error: err.message }, { status: 500 });

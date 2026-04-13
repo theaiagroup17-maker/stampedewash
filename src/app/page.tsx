@@ -28,7 +28,7 @@ export default function Dashboard() {
   const [viewFilter, setViewFilter] = useState<ViewFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [clickToAddMode, setClickToAddMode] = useState(false);
-  const [showCompetitors, setShowCompetitors] = useState(false);
+  const [showCompetitors, setShowCompetitors] = useState(true);
   const [visibleBrands, setVisibleBrands] = useState<Set<string>>(new Set(BRAND_KEYS));
   const [mapClickCoords, setMapClickCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
