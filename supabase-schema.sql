@@ -68,3 +68,31 @@ CREATE INDEX IF NOT EXISTS idx_competitors_city ON competitors(city);
 -- Unique constraint for competitor upserts
 -- Run this if adding to an existing table: ALTER TABLE competitors ADD CONSTRAINT competitors_name_address_unique UNIQUE (name, address);
 ALTER TABLE competitors ADD CONSTRAINT IF NOT EXISTS competitors_name_address_unique UNIQUE (name, address);
+
+-- Competitor status and notes columns
+ALTER TABLE competitors ADD COLUMN IF NOT EXISTS status text DEFAULT 'existing';
+ALTER TABLE competitors ADD COLUMN IF NOT EXISTS notes text;
+
+-- Tags table
+CREATE TABLE IF NOT EXISTS tags (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  name text NOT NULL UNIQUE,
+  color text NOT NULL DEFAULT '#6B7280',
+  created_at timestamptz DEFAULT now()
+);
+
+-- Site-tags junction table
+CREATE TABLE IF NOT EXISTS site_tags (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  site_id uuid REFERENCES sites(id) ON DELETE CASCADE,
+  tag_id uuid REFERENCES tags(id) ON DELETE CASCADE,
+  created_at timestamptz DEFAULT now(),
+  UNIQUE(site_id, tag_id)
+);
+
+ALTER TABLE tags ENABLE ROW LEVEL SECURITY;
+ALTER TABLE site_tags ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow all on tags" ON tags FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all on site_tags" ON site_tags FOR ALL USING (true) WITH CHECK (true);
+ALTER PUBLICATION supabase_realtime ADD TABLE tags;
+ALTER PUBLICATION supabase_realtime ADD TABLE site_tags;

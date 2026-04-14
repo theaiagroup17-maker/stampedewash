@@ -13,19 +13,41 @@ export default function AddSitePanel({ clickToAddMode, onToggleClickMode }: AddS
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmitLink = async () => {
-    if (!link.trim()) return;
+    const input = link.trim();
+    if (!input) return;
+
     setSubmitting(true);
+    console.log('[AddSitePanel] Submitting input:', input);
+
     try {
+      // Detect if input looks like coordinates (e.g. "51.0447, -114.0719")
+      const coordMatch = input.match(/^(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)$/);
+
+      let body: any;
+      if (coordMatch) {
+        // Direct coordinates
+        body = { lat: parseFloat(coordMatch[1]), lng: parseFloat(coordMatch[2]) };
+        console.log('[AddSitePanel] Detected coordinates:', body);
+      } else {
+        // URL or address — send as google_maps_url (the API handles both)
+        body = { google_maps_url: input };
+      }
+
       const res = await fetch('/api/sites/add', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ google_maps_url: link.trim() }),
+        body: JSON.stringify(body),
       });
+
       const data = await res.json();
+      console.log('[AddSitePanel] Response:', res.status, data);
+
       if (!res.ok) throw new Error(data.error || 'Failed to add site');
+
       toast.success(`Site added: ${data.site.name}`);
       setLink('');
     } catch (err: any) {
+      console.error('[AddSitePanel] Error:', err);
       toast.error(err.message);
     } finally {
       setSubmitting(false);
@@ -38,7 +60,7 @@ export default function AddSitePanel({ clickToAddMode, onToggleClickMode }: AddS
       <div className="flex gap-2 mb-2">
         <input
           type="text"
-          placeholder="Paste Google Maps link or address..."
+          placeholder="Google Maps link, address, or lat,lng..."
           value={link}
           onChange={(e) => setLink(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSubmitLink()}

@@ -32,6 +32,22 @@ export interface Competitor {
   city: string | null;
   wash_type: string | null;
   verified: boolean;
+  status: 'existing' | 'new' | 'upcoming';
+  notes: string | null;
+  created_at: string;
+}
+
+export interface Tag {
+  id: string;
+  name: string;
+  color: string;
+  created_at: string;
+}
+
+export interface SiteTag {
+  id: string;
+  site_id: string;
+  tag_id: string;
   created_at: string;
 }
 

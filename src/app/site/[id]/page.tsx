@@ -8,6 +8,9 @@ import { USERS } from '@/lib/users';
 import { formatMountainTime } from '@/lib/constants';
 import UserModal from '@/components/UserModal';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import SiteTagPicker from '@/components/SiteTagPicker';
+import TagManager from '@/components/TagManager';
+import { useTags, useSiteTags } from '@/hooks/useSupabaseRealtime';
 import type { Site, Ranking, ResearchData } from '@/lib/types';
 import toast from 'react-hot-toast';
 
@@ -37,6 +40,9 @@ export default function SiteDetailPage() {
   const [editingName, setEditingName] = useState(false);
   const [editName, setEditName] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showTagManager, setShowTagManager] = useState(false);
+  const { tags, refetch: refetchTags } = useTags();
+  const { siteTags, refetch: refetchSiteTags } = useSiteTags();
 
   const fetchData = useCallback(async () => {
     const { data: siteData } = await supabase.from('sites').select('*').eq('id', siteId).single();
@@ -217,6 +223,11 @@ export default function SiteDetailPage() {
           </select>
         </div>
         <p className="text-sm text-gray-500 mt-1 ml-9">{site.address || 'No address'}</p>
+        <div className="mt-2 ml-9 flex items-center gap-2">
+          <SiteTagPicker siteId={siteId} tags={tags} siteTags={siteTags}
+            onRefresh={() => { refetchTags(); refetchSiteTags(); }} />
+          <button onClick={() => setShowTagManager(true)} className="text-[10px] text-gray-400 hover:text-stampede-red">Manage Tags</button>
+        </div>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6 p-4 md:p-6 max-w-7xl mx-auto">
@@ -286,6 +297,7 @@ export default function SiteDetailPage() {
           onConfirm={handleDeleteSite} onCancel={() => setShowDeleteConfirm(false)}
         />
       )}
+      {showTagManager && <TagManager onClose={() => { setShowTagManager(false); refetchTags(); refetchSiteTags(); }} />}
     </div>
   );
 }

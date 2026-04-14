@@ -5,6 +5,7 @@ import { importLibrary, setOptions } from '@googlemaps/js-api-loader';
 import { CALGARY_CENTER, DEFAULT_ZOOM } from '@/lib/constants';
 import { getBrand } from '@/lib/brands';
 import { getUserRank } from '@/hooks/useSupabaseRealtime';
+import { USERS } from '@/lib/users';
 import type { Site, Ranking, Competitor } from '@/lib/types';
 
 interface GoogleMapProps {
@@ -27,17 +28,20 @@ function getSitePinColor(site: Site, rankings: Ranking[]): string {
   return hasRanking ? '#CC0000' : '#F59E0B';
 }
 
+function buildRankLabel(rankings: Ranking[], siteId: string): string {
+  const parts: string[] = [];
+  for (const user of USERS) {
+    const rank = getUserRank(rankings, siteId, user);
+    if (rank !== null) {
+      parts.push(`${user[0]}${rank}`);
+    }
+  }
+  return parts.join('/');
+}
+
 export default function GoogleMap({
-  sites,
-  rankings,
-  competitors,
-  visibleBrands,
-  showCompetitors,
-  clickToAddMode,
-  onMapClick,
-  onSiteClick,
-  onCompetitorClick,
-  filteredSiteIds,
+  sites, rankings, competitors, visibleBrands, showCompetitors,
+  clickToAddMode, onMapClick, onSiteClick, onCompetitorClick, filteredSiteIds,
 }: GoogleMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
@@ -51,16 +55,11 @@ export default function GoogleMap({
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
     if (!apiKey || !mapRef.current) return;
 
-    setOptions({
-      key: apiKey,
-      v: 'weekly',
-      libraries: ['places', 'marker', 'geocoding'],
-    });
+    setOptions({ key: apiKey, v: 'weekly', libraries: ['places', 'marker', 'geocoding'] });
 
     const init = async () => {
       await importLibrary('maps');
       await importLibrary('marker');
-
       if (!mapRef.current) return;
 
       const map = new google.maps.Map(mapRef.current, {
@@ -94,9 +93,7 @@ export default function GoogleMap({
     if (clickToAddMode) {
       map.setOptions({ draggableCursor: 'crosshair' });
       const listener = map.addListener('click', (e: google.maps.MapMouseEvent) => {
-        if (e.latLng) {
-          onMapClick(e.latLng.lat(), e.latLng.lng());
-        }
+        if (e.latLng) onMapClick(e.latLng.lat(), e.latLng.lng());
       });
       return () => google.maps.event.removeListener(listener);
     } else {
@@ -108,7 +105,6 @@ export default function GoogleMap({
   useEffect(() => {
     if (!mapInstanceRef.current || !mapLoaded) return;
 
-    // Clear old markers
     siteMarkersRef.current.forEach(m => (m.map = null));
     siteMarkersRef.current = [];
 
@@ -118,15 +114,29 @@ export default function GoogleMap({
 
     visibleSites.forEach(site => {
       const color = getSitePinColor(site, rankings);
+      const rankLabel = buildRankLabel(rankings, site.id);
+      const hasLabel = rankLabel.length > 0;
+
+      // Size the pin based on label length
+      const pinWidth = hasLabel ? Math.max(32, rankLabel.length * 8 + 16) : 28;
+      const pinHeight = hasLabel ? 28 : 28;
+      const fontSize = rankLabel.length > 5 ? 8 : 9;
 
       const pinEl = document.createElement('div');
       pinEl.style.cssText = `
-        width: 28px; height: 28px; border-radius: 50%;
+        min-width: ${pinWidth}px; height: ${pinHeight}px;
+        border-radius: ${hasLabel ? '14px' : '50%'};
         background: ${color}; border: 3px solid white;
         box-shadow: 0 2px 6px rgba(0,0,0,0.3);
         cursor: pointer; transition: transform 0.2s;
+        display: flex; align-items: center; justify-content: center;
+        padding: 0 ${hasLabel ? '4px' : '0'};
+        font-size: ${fontSize}px; font-weight: 800; color: white;
+        font-family: Inter, system-ui, sans-serif;
+        letter-spacing: 0.3px; white-space: nowrap;
       `;
-      pinEl.addEventListener('mouseenter', () => { pinEl.style.transform = 'scale(1.2)'; });
+      pinEl.textContent = hasLabel ? rankLabel : '';
+      pinEl.addEventListener('mouseenter', () => { pinEl.style.transform = 'scale(1.15)'; });
       pinEl.addEventListener('mouseleave', () => { pinEl.style.transform = 'scale(1)'; });
 
       const marker = new google.maps.marker.AdvancedMarkerElement({
@@ -134,14 +144,17 @@ export default function GoogleMap({
         map: mapInstanceRef.current!,
         content: pinEl,
         title: site.name,
-        zIndex: 10,
+        zIndex: hasLabel ? 15 : 10,
       });
 
       marker.addListener('click', () => {
         onSiteClick(site);
 
-        const derekRank = getUserRank(rankings, site.id, 'Derek');
-        const chadRank = getUserRank(rankings, site.id, 'Chad');
+        // Build rank display for info window using USERS array
+        const rankParts = USERS.map(u => {
+          const r = getUserRank(rankings, site.id, u);
+          return `<span><strong>${u}:</strong> ${r ? '#' + r : '—'}</span>`;
+        }).join('');
 
         const statusLabel = site.status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
 
@@ -149,10 +162,7 @@ export default function GoogleMap({
           <div style="padding: 12px; font-family: Inter, sans-serif; min-width: 200px;">
             <h3 style="margin: 0 0 4px; font-size: 15px; font-weight: 700; color: #0A0A0A;">${site.name}</h3>
             <p style="margin: 0 0 8px; font-size: 12px; color: #6B7280;">${site.address || 'No address'}</p>
-            <div style="display: flex; gap: 12px; margin-bottom: 8px; font-size: 13px;">
-              <span><strong>Derek:</strong> ${derekRank ? '#' + derekRank : '—'}</span>
-              <span><strong>Chad:</strong> ${chadRank ? '#' + chadRank : '—'}</span>
-            </div>
+            <div style="display: flex; gap: 12px; margin-bottom: 8px; font-size: 13px;">${rankParts}</div>
             <div style="margin-bottom: 10px;">
               <span style="display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 11px; font-weight: 600; background: ${color}20; color: ${color};">${statusLabel}</span>
             </div>
