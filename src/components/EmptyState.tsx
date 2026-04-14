@@ -24,10 +24,19 @@ export default function EmptyState() {
   const handleSeedCompetitors = async () => {
     setSeedingCompetitors(true);
     try {
+      // Seed hardcoded verified competitors first
       const res = await fetch('/api/seed-competitors', { method: 'POST' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to seed competitors');
-      toast.success(`Seeded ${data.count} competitor locations`);
+      toast.success(`${data.count} competitors loaded successfully`);
+
+      // Fire and forget AI discovery for additional locations
+      fetch('/api/discover-competitors', { method: 'POST' })
+        .then(async r => {
+          const d = await r.json();
+          if (r.ok && d.upserted > 0) toast.success(`AI found ${d.upserted} additional competitors`);
+        })
+        .catch(() => {});
     } catch (err: any) {
       toast.error(err.message);
     } finally {

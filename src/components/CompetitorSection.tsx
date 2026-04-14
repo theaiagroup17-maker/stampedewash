@@ -70,11 +70,23 @@ export default function CompetitorSection({
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      const res = await fetch('/api/discover-competitors', { method: 'POST' });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed');
-      toast.success(`Found ${data.found} competitors, upserted ${data.upserted}`);
+      // Step 1: Seed hardcoded verified competitors
+      const seedRes = await fetch('/api/seed-competitors', { method: 'POST' });
+      const seedData = await seedRes.json();
+      if (!seedRes.ok) throw new Error(seedData.error || 'Seed failed');
+      toast.success(`${seedData.count} competitors loaded successfully`);
       onRefresh();
+
+      // Step 2: Optionally run AI discovery for additional locations (fire and forget)
+      fetch('/api/discover-competitors', { method: 'POST' })
+        .then(async r => {
+          const d = await r.json();
+          if (r.ok && d.upserted > 0) {
+            toast.success(`AI found ${d.upserted} additional competitors`);
+            onRefresh();
+          }
+        })
+        .catch(() => {});
     } catch (err: any) {
       toast.error(err.message);
     } finally {
