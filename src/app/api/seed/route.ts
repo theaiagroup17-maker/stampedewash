@@ -4,7 +4,7 @@ import { SEED_SITES } from '@/lib/constants';
 
 export const maxDuration = 60;
 
-export async function POST(_req: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
     const supabase = createServerClient();
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -21,7 +21,6 @@ export async function POST(_req: NextRequest) {
       const [lng, lat] = SEED_SITES[i];
       let address: string | null = null;
 
-      // Reverse geocode
       if (apiKey) {
         try {
           const geoRes = await fetch(
@@ -36,11 +35,7 @@ export async function POST(_req: NextRequest) {
       const notes = (i === 7) ? '⚠️ Possible duplicate of Site 7 (near-identical coordinates)' : null;
 
       sites.push({
-        name,
-        address,
-        lat,
-        lng,
-        notes,
+        name, address, lat, lng, notes,
         status: 'potential' as const,
         research_status: 'pending' as const,
       });
@@ -53,7 +48,16 @@ export async function POST(_req: NextRequest) {
 
     if (error) throw error;
 
-    return NextResponse.json({ count: inserted?.length || 0, message: 'Sites seeded successfully.' });
+    // FIX 7: Fire and forget — trigger research for each site
+    const baseUrl = req.nextUrl.origin;
+    if (inserted) {
+      for (const site of inserted) {
+        fetch(`${baseUrl}/api/research/${site.id}`, { method: 'POST' }).catch(() => {});
+      }
+    }
+
+    console.log(`[seed] Seeded ${inserted?.length || 0} sites, research triggered for all`);
+    return NextResponse.json({ count: inserted?.length || 0, message: 'Sites seeded. Research running in background.' });
   } catch (err: any) {
     console.error('Seed error:', err);
     return NextResponse.json({ error: err.message }, { status: 500 });

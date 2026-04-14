@@ -102,7 +102,7 @@ export default function CompetitorSection({
             </svg>
           </button>
           <span className="font-bold text-sm text-stampede-black">Competitors</span>
-          <span className="text-xs text-gray-400">({competitors.length})</span>
+          <span className="text-xs text-gray-400">{competitors.length} loaded</span>
         </div>
         <label className="flex items-center gap-2 cursor-pointer">
           <span className="text-xs text-gray-500">Show</span>

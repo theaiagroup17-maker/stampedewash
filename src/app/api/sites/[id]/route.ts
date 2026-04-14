@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase';
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const supabase = createServerClient();
     const { data: site, error } = await supabase
@@ -45,6 +45,22 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
     if (error) throw error;
     return NextResponse.json({ site });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const supabase = createServerClient();
+
+    // Rankings cascade on delete (foreign key), but delete explicitly to be safe
+    await supabase.from('rankings').delete().eq('site_id', params.id);
+
+    const { error } = await supabase.from('sites').delete().eq('id', params.id);
+    if (error) throw error;
+
+    return NextResponse.json({ success: true });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

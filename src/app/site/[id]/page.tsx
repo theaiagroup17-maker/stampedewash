@@ -7,6 +7,7 @@ import { useUser } from '@/hooks/useUser';
 import { USERS } from '@/lib/users';
 import { formatMountainTime } from '@/lib/constants';
 import UserModal from '@/components/UserModal';
+import ConfirmDialog from '@/components/ConfirmDialog';
 import type { Site, Ranking, ResearchData } from '@/lib/types';
 import toast from 'react-hot-toast';
 
@@ -33,6 +34,9 @@ export default function SiteDetailPage() {
   const [notesSaving, setNotesSaving] = useState(false);
   const [notesLastSaved, setNotesLastSaved] = useState<string | null>(null);
   const notesTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [editingName, setEditingName] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const fetchData = useCallback(async () => {
     const { data: siteData } = await supabase.from('sites').select('*').eq('id', siteId).single();
@@ -146,6 +150,22 @@ export default function SiteDetailPage() {
     }
   };
 
+  const handleNameSave = async () => {
+    if (!editName.trim()) return;
+    const res = await fetch(`/api/sites/${siteId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: editName.trim() }),
+    });
+    if (res.ok) { toast.success('Name updated'); setEditingName(false); }
+  };
+
+  const handleDeleteSite = async () => {
+    const res = await fetch(`/api/sites/${siteId}`, { method: 'DELETE' });
+    if (res.ok) { toast.success('Site deleted'); router.push('/'); }
+    else toast.error('Failed to delete site');
+  };
+
   if (userLoading || loading) {
     return (
       <div className="h-screen bg-gray-50 flex items-center justify-center">
@@ -176,7 +196,16 @@ export default function SiteDetailPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
           </button>
-          <h1 className="text-xl md:text-2xl font-bold text-stampede-black flex-1">{site.name}</h1>
+          {editingName ? (
+            <input type="text" value={editName} onChange={(e) => setEditName(e.target.value)}
+              onBlur={handleNameSave} onKeyDown={(e) => { if (e.key === 'Enter') handleNameSave(); if (e.key === 'Escape') setEditingName(false); }}
+              className="text-xl md:text-2xl font-bold text-stampede-black flex-1 bg-transparent border-b-2 border-stampede-red focus:outline-none"
+              autoFocus />
+          ) : (
+            <h1 onClick={() => { setEditName(site.name); setEditingName(true); }}
+              className="text-xl md:text-2xl font-bold text-stampede-black flex-1 cursor-pointer hover:text-stampede-red transition-colors"
+              title="Click to rename">{site.name}</h1>
+          )}
           <select
             value={site.status}
             onChange={(e) => handleStatusChange(e.target.value)}
@@ -240,6 +269,23 @@ export default function SiteDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Delete site button */}
+      <div className="max-w-7xl mx-auto px-4 md:px-6 pb-8">
+        <button onClick={() => setShowDeleteConfirm(true)}
+          className="px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors">
+          Delete Site
+        </button>
+      </div>
+
+      {showDeleteConfirm && (
+        <ConfirmDialog
+          title="Delete Site"
+          message={`Are you sure you want to delete "${site.name}"? This will also remove all rankings for this site. This cannot be undone.`}
+          confirmLabel="Delete" confirmColor="red"
+          onConfirm={handleDeleteSite} onCancel={() => setShowDeleteConfirm(false)}
+        />
+      )}
     </div>
   );
 }

@@ -3,13 +3,16 @@ import { createServerClient } from '@/lib/supabase';
 
 export const maxDuration = 60;
 
+// NOTE: If competitors_name_address_unique constraint doesn't exist, run:
+// ALTER TABLE competitors ADD CONSTRAINT competitors_name_address_unique UNIQUE (name, address);
+
 interface SeedCompetitor {
   name: string;
   brand: string;
   address: string;
   city: string;
-  lat: number | null;
-  lng: number | null;
+  lat: number;
+  lng: number;
   wash_type: string;
 }
 
@@ -19,10 +22,8 @@ const SEED_COMPETITORS: SeedCompetitor[] = [
   { name: 'Great White Wash - Aviation', brand: 'gww', address: '477 Aviation Rd NE, Calgary', city: 'Calgary', lat: 51.0893, lng: -114.0076, wash_type: 'tunnel' },
   { name: 'Great White Wash - Mahogany', brand: 'gww', address: '125 Mahogany St SE, Calgary', city: 'Calgary', lat: 50.9113, lng: -113.9689, wash_type: 'tunnel' },
   { name: "Great White Wash - Tsuut'ina", brand: 'gww', address: "11501 Buffalo Run Blvd #403, Tsuut'ina", city: 'Calgary', lat: 50.9441, lng: -114.1856, wash_type: 'tunnel' },
-
   // Mint Smartwash
   { name: 'Mint Smartwash - 99th Ave', brand: 'mnt', address: '150 99th Ave SE, Calgary', city: 'Calgary', lat: 50.9680, lng: -114.0656, wash_type: 'express' },
-
   // Calgary Co-op
   { name: 'Calgary Co-op Car Wash - Mission', brand: 'coop', address: '3623 Macleod Trail SW, Calgary', city: 'Calgary', lat: 51.0326, lng: -114.0695, wash_type: 'automatic' },
   { name: 'Calgary Co-op Car Wash - Copperfield', brand: 'coop', address: '15566 McIvor Blvd SE #400, Calgary', city: 'Calgary', lat: 50.8986, lng: -113.9631, wash_type: 'automatic' },
@@ -35,7 +36,6 @@ const SEED_COMPETITORS: SeedCompetitor[] = [
   { name: 'Calgary Co-op Car Wash - Shaganappi', brand: 'coop', address: '5505 Shaganappi Tr NW, Calgary', city: 'Calgary', lat: 51.0651, lng: -114.1335, wash_type: 'automatic' },
   { name: 'Calgary Co-op Car Wash - Panorama Hills', brand: 'coop', address: '1111 Panatella Blvd NW, Calgary', city: 'Calgary', lat: 51.1497, lng: -114.0786, wash_type: 'automatic' },
   { name: 'Calgary Co-op Car Wash - Okotoks', brand: 'coop', address: '31 Southridge Dr #111, Okotoks', city: 'Okotoks', lat: 50.7267, lng: -113.9797, wash_type: 'automatic' },
-
   // Bubbles Car Wash
   { name: 'Bubbles Car Wash - Macleod S', brand: 'bub', address: '4715 Macleod Trail SW, Calgary', city: 'Calgary', lat: 51.0131, lng: -114.0680, wash_type: 'full_service' },
   { name: 'Bubbles Car Wash - Macleod 59th', brand: 'bub', address: '5912 Macleod Trail SW, Calgary', city: 'Calgary', lat: 50.9987, lng: -114.0666, wash_type: 'full_service' },
@@ -44,30 +44,12 @@ const SEED_COMPETITORS: SeedCompetitor[] = [
 export async function POST(_req: NextRequest) {
   try {
     const supabase = createServerClient();
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-    let count = 0;
+    let inserted = 0;
+    let updated = 0;
+
     for (const comp of SEED_COMPETITORS) {
-      let { lat, lng } = comp;
-
-      // Geocode if still missing coordinates
-      if ((lat === null || lng === null) && apiKey) {
-        try {
-          const geoRes = await fetch(
-            `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(comp.address + ', Alberta, Canada')}&key=${apiKey}`
-          );
-          const geoData = await geoRes.json();
-          if (geoData.results?.[0]) {
-            lat = geoData.results[0].geometry.location.lat;
-            lng = geoData.results[0].geometry.location.lng;
-          }
-        } catch {}
-      }
-
-      // Skip if we still have no coordinates
-      if (lat === null || lng === null) continue;
-
-      // Check if this competitor already exists (by name)
+      // Check if exists by name
       const { data: existing } = await supabase
         .from('competitors')
         .select('id')
@@ -75,38 +57,27 @@ export async function POST(_req: NextRequest) {
         .maybeSingle();
 
       if (existing) {
-        // Update existing
-        await supabase
-          .from('competitors')
-          .update({
-            brand: comp.brand,
-            address: comp.address,
-            city: comp.city,
-            lat,
-            lng,
-            wash_type: comp.wash_type,
-            verified: true,
-          })
+        await supabase.from('competitors')
+          .update({ brand: comp.brand, address: comp.address, city: comp.city, lat: comp.lat, lng: comp.lng, wash_type: comp.wash_type, verified: true })
           .eq('id', existing.id);
+        updated++;
       } else {
-        // Insert new
-        await supabase.from('competitors').insert({
-          name: comp.name,
-          brand: comp.brand,
-          address: comp.address,
-          city: comp.city,
-          lat,
-          lng,
-          wash_type: comp.wash_type,
-          verified: true,
+        const { error } = await supabase.from('competitors').insert({
+          name: comp.name, brand: comp.brand, address: comp.address, city: comp.city,
+          lat: comp.lat, lng: comp.lng, wash_type: comp.wash_type, verified: true,
         });
+        if (error) {
+          console.error('[seed-competitors] Insert error:', comp.name, error.message);
+        } else {
+          inserted++;
+        }
       }
-      count++;
     }
 
-    return NextResponse.json({ count, message: `Seeded ${count} competitor locations` });
+    console.log(`[seed-competitors] Inserted: ${inserted}, Updated: ${updated}, Total seed: ${SEED_COMPETITORS.length}`);
+    return NextResponse.json({ count: inserted + updated, inserted, updated, message: `Seeded ${inserted + updated} competitor locations` });
   } catch (err: any) {
-    console.error('Seed competitors error:', err);
+    console.error('[seed-competitors] Error:', err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

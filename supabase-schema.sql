@@ -64,3 +64,7 @@ CREATE INDEX IF NOT EXISTS idx_rankings_site_id ON rankings(site_id);
 CREATE INDEX IF NOT EXISTS idx_rankings_user_name ON rankings(user_name);
 CREATE INDEX IF NOT EXISTS idx_competitors_brand ON competitors(brand);
 CREATE INDEX IF NOT EXISTS idx_competitors_city ON competitors(city);
+
+-- Unique constraint for competitor upserts
+-- Run this if adding to an existing table: ALTER TABLE competitors ADD CONSTRAINT competitors_name_address_unique UNIQUE (name, address);
+ALTER TABLE competitors ADD CONSTRAINT IF NOT EXISTS competitors_name_address_unique UNIQUE (name, address);
