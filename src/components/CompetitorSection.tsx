@@ -69,25 +69,29 @@ export default function CompetitorSection({
 
   const handleRefresh = async () => {
     setRefreshing(true);
+    console.log('[CompetitorSection] Calling POST /api/seed-competitors...');
     try {
-      // Step 1: Seed hardcoded verified competitors
       const seedRes = await fetch('/api/seed-competitors', { method: 'POST' });
+      console.log('[CompetitorSection] /api/seed-competitors status:', seedRes.status);
       const seedData = await seedRes.json();
+      console.log('[CompetitorSection] /api/seed-competitors response:', seedData);
       if (!seedRes.ok) throw new Error(seedData.error || 'Seed failed');
       toast.success(`${seedData.count} competitors loaded successfully`);
       onRefresh();
 
-      // Step 2: Optionally run AI discovery for additional locations (fire and forget)
+      // Fire and forget AI discovery
       fetch('/api/discover-competitors', { method: 'POST' })
         .then(async r => {
           const d = await r.json();
+          console.log('[CompetitorSection] AI discovery response:', d);
           if (r.ok && d.upserted > 0) {
             toast.success(`AI found ${d.upserted} additional competitors`);
             onRefresh();
           }
         })
-        .catch(() => {});
+        .catch((e) => console.error('[CompetitorSection] AI discovery error:', e));
     } catch (err: any) {
+      console.error('[CompetitorSection] Seed error:', err);
       toast.error(err.message);
     } finally {
       setRefreshing(false);

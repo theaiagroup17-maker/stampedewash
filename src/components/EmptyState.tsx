@@ -9,12 +9,15 @@ export default function EmptyState() {
 
   const handleSeedSites = async () => {
     setSeeding(true);
+    console.log('[EmptyState] Calling POST /api/seed...');
     try {
       const res = await fetch('/api/seed', { method: 'POST' });
       const data = await res.json();
+      console.log('[EmptyState] /api/seed response:', data);
       if (!res.ok) throw new Error(data.error || 'Failed to seed sites');
       toast.success(`Seeded ${data.count} sites`);
     } catch (err: any) {
+      console.error('[EmptyState] Seed sites error:', err);
       toast.error(err.message);
     } finally {
       setSeeding(false);
@@ -23,10 +26,12 @@ export default function EmptyState() {
 
   const handleSeedCompetitors = async () => {
     setSeedingCompetitors(true);
+    console.log('[EmptyState] Calling POST /api/seed-competitors...');
     try {
-      // Seed hardcoded verified competitors first
       const res = await fetch('/api/seed-competitors', { method: 'POST' });
+      console.log('[EmptyState] /api/seed-competitors status:', res.status);
       const data = await res.json();
+      console.log('[EmptyState] /api/seed-competitors response:', data);
       if (!res.ok) throw new Error(data.error || 'Failed to seed competitors');
       toast.success(`${data.count} competitors loaded successfully`);
 
@@ -34,10 +39,12 @@ export default function EmptyState() {
       fetch('/api/discover-competitors', { method: 'POST' })
         .then(async r => {
           const d = await r.json();
+          console.log('[EmptyState] AI discovery response:', d);
           if (r.ok && d.upserted > 0) toast.success(`AI found ${d.upserted} additional competitors`);
         })
-        .catch(() => {});
+        .catch((e) => console.error('[EmptyState] AI discovery error:', e));
     } catch (err: any) {
+      console.error('[EmptyState] Seed competitors error:', err);
       toast.error(err.message);
     } finally {
       setSeedingCompetitors(false);
@@ -55,31 +62,13 @@ export default function EmptyState() {
           No sites added yet. Get started by seeding your initial sites or adding one manually.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <button
-            onClick={handleSeedSites}
-            disabled={seeding}
-            className="px-6 py-3 bg-stampede-red text-white font-semibold rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 shadow-md"
-          >
-            {seeding ? (
-              <span className="flex items-center gap-2">
-                <span className="animate-spin">⏳</span> Seeding Sites...
-              </span>
-            ) : (
-              '🌱 Seed Initial Sites'
-            )}
+          <button onClick={handleSeedSites} disabled={seeding}
+            className="px-6 py-3 bg-stampede-red text-white font-semibold rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 shadow-md">
+            {seeding ? <span className="flex items-center gap-2"><span className="animate-spin">⏳</span> Seeding Sites...</span> : '🌱 Seed Initial Sites'}
           </button>
-          <button
-            onClick={handleSeedCompetitors}
-            disabled={seedingCompetitors}
-            className="px-6 py-3 bg-stampede-black text-white font-semibold rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 shadow-md"
-          >
-            {seedingCompetitors ? (
-              <span className="flex items-center gap-2">
-                <span className="animate-spin">⏳</span> Seeding...
-              </span>
-            ) : (
-              '🏁 Seed Competitor Data'
-            )}
+          <button onClick={handleSeedCompetitors} disabled={seedingCompetitors}
+            className="px-6 py-3 bg-stampede-black text-white font-semibold rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 shadow-md">
+            {seedingCompetitors ? <span className="flex items-center gap-2"><span className="animate-spin">⏳</span> Seeding...</span> : '🏁 Seed Competitor Data'}
           </button>
         </div>
       </div>

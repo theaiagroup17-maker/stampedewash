@@ -395,6 +395,25 @@ export default function Dashboard() {
           onConfirm={handleDeleteSite} onCancel={() => setDeleteTarget(null)}
         />
       )}
+
+      {/* Debug button — temporary */}
+      <button
+        onClick={async () => {
+          try {
+            console.log('[DEBUG] Calling POST /api/seed-competitors...');
+            const res = await fetch('/api/seed-competitors', { method: 'POST' });
+            const data = await res.json();
+            console.log('[DEBUG] Response:', data);
+            alert(JSON.stringify(data, null, 2));
+            if (res.ok) refetchCompetitors();
+          } catch (e: any) {
+            alert('Error: ' + e.message);
+          }
+        }}
+        className="fixed bottom-4 left-4 z-50 px-3 py-1.5 text-[10px] font-mono bg-gray-500 text-white rounded shadow hover:bg-gray-600 transition-colors opacity-60 hover:opacity-100"
+      >
+        Debug: Seed Competitors
+      </button>
     </div>
   );
 }
